@@ -1,0 +1,44 @@
+services:
+  marzban:
+    image: gozargah/marzban:latest
+    restart: unless-stopped
+    env_file: .env
+    network_mode: bridge
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/lib/marzban:/var/lib/marzban
+      - /var/lib/marzban/logs:/var/lib/marzban-node
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      mariadb:
+        condition: service_healthy  mariadb:
+    image: mariadb:lts
+    restart: unless-stopped
+    env_file: .env
+    network_mode: bridge
+    volumes:
+      - /var/lib/marzban/mysql:/var/lib/mysql
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --bind-address=127.0.0.1
+      - --character_set_server=utf8mb4
+      - --innodb_doublewrite=1
+      - --innodb_log_file_size=128M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    secrets:
+      - mysql_root_password
+      - mysql_passwordsecrets:
+  mysql_root_password:
+    file: /run/secrets/mysql_root_password
+  mysql_password:
+    file: /run/secrets/mysql_password
+
